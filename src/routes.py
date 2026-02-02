@@ -215,16 +215,11 @@ def add_favorite_character(id, char_id):
     return jsonify(user.favorites_serialize()), 201
 
 
-# @api.route('/users/<int:id>/locations/<int:location_id>', methods=['POST'])
-# def add_favorite_location(id, location_id):
-#     user = User.query.get(id)
-#     location = location.query.get(location_id)
+@api.route('/users/<int:id>/locations/<int:char_id>', methods=['POST'])
+def add_favorite_location(id, char_id):
+    user = User.query.get(id)
+    location = Location.query.get(char_id)
 
-#     instruction = favorites_table.insert().values(
-#         user_id=user,
-#         character_id=None,
-#         location_id=None
-#     )
-#     db.session.execute(instruction)
-#     db.session.commit()
-#     return jsonify(user.favorites_serialize()), 201
+    user.location_liked.append(location)
+    db.session.commit()
+    return jsonify(user.favorites_serialize()), 201

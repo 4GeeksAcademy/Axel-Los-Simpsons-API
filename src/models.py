@@ -41,8 +41,8 @@ class User(db.Model):
     def favorites_serialize(self):
         return {
             "favorites": {
-                "characters": [character for character in self.character_liked],
-                "locations": [location for location in self.location_liked]
+                "characters": [character.serialize() for character in self.character_liked],
+                "locations": [location.serialize() for location in self.location_liked]
             }
         }
 
