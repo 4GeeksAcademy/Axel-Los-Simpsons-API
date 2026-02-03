@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import User, Character, Location, db, favorites_table
+from models import User, Character, Location, db, favorite_characters_table, favorite_locations_table
 
 api = Blueprint('api', __name__)
 
@@ -25,11 +25,12 @@ def get_user(id):
 @api.route('/users', methods=['POST'])
 def create_user():
     data = request.get_json()
-    if not data.get('email') or not data.get('password'):
-        return jsonify({'error': "email and password is necessary"}), 400
+    if not data.get('email') or not data.get('username') or not data.get('password'):
+        return jsonify({'error': "email, username and password is necessary"}), 400
 
     new_user = User(
         email=data['email'],
+        user=data['username'],
         password=data['password']
     )
     db.session.add(new_user)
@@ -52,9 +53,9 @@ def edit_user(id):
         if new_user == existing_user:
             return jsonify({"error": "user already exist"}), 400
 
-        user['user'] = data.get('user', user['user'])
-        user['email'] = data.get('email', user['email'])
-        user['password'] = data.get('password', user['password'])
+        user.user = data.get('user', user.user)
+        user.email= data.get('email', user.email)
+        user.password = data.get('password', user.password)
         db.session.commit()
         return jsonify(user.serialize()), 200
     return jsonify({"error": "User doesn't exist"}), 404
@@ -114,9 +115,9 @@ def edit_character(id):
         if new_name == existing_name:
             return jsonify({"error": "character name already exist"}), 400
 
-        character['name'] = data.get('name', character['name'])
-        character['quote'] = data.get('quote', character['quote'])
-        character['image'] = data.get('image', character['image'])
+        character.name = data.get('name', character.name)
+        character.quote = data.get('quote', character.quote)
+        character.image = data.get('image', character.image)
         db.session.commit()
         return jsonify(character.serialize()), 200
     return jsonify({"error": "User doesnt exist"}), 404
@@ -177,10 +178,10 @@ def edit_location(id):
         if new_name == existing_name:
             return jsonify({"error": "location name already exist"}), 400
 
-        location['name'] = data.get('name', location['name'])
-        location['use'] = data.get('use', location['use'])
-        location['image'] = data.get('image', location['image'])
-        location['town'] = data.get('town', location['town'])
+        location.name = data.get('name', location.name)
+        location.use = data.get('use', location.use)
+        location.image = data.get('image', location.image)
+        location.town = data.get('town', location.town)
         db.session.commit()
         return jsonify(location.serialize()), 200
     return jsonify({"error": "location doesn't exist"}), 404
@@ -188,7 +189,7 @@ def edit_location(id):
 
 @api.route('/users/<int:id>', methods=['DELETE'])
 def delete_location(id):
-    location = db.session.get(location, id)
+    location = db.session.get(Location, id)
     if not location:
         return jsonify({"error": "location not found"})
 
@@ -198,28 +199,51 @@ def delete_location(id):
 
 # Favorites
 
-
 @api.route('/users/<int:id>/favorites', methods=['GET'])
 def get_favorites(id):
     user = User.query.get(id)
     return jsonify(user.favorites_serialize()), 200
-
 
 @api.route('/users/<int:id>/characters/<int:char_id>', methods=['POST'])
 def add_favorite_character(id, char_id):
     user = User.query.get(id)
     character = Character.query.get(char_id)
 
-    user.character_liked.append(character)
+    user.favorite_characters.append(character)
     db.session.commit()
     return jsonify(user.favorites_serialize()), 201
-
 
 @api.route('/users/<int:id>/locations/<int:char_id>', methods=['POST'])
 def add_favorite_location(id, char_id):
     user = User.query.get(id)
     location = Location.query.get(char_id)
 
-    user.location_liked.append(location)
+    user.favorite_locations.append(location)
     db.session.commit()
     return jsonify(user.favorites_serialize()), 201
+
+@api.route('/users/<int:id>/characters/<int:char_id>', methods=['DELETE'])
+def eliminate_character_fav(id, char_id):
+    user = db.session.get(User, id)
+    character = db.session.get(Character, char_id)
+
+    if not user or not character:
+        return jsonify({"error": "user or character not found"}), 404
+    
+    if character in user.favorite_characters:
+        user.favorite_characters.remove(character)
+        db.session.commit()
+        return jsonify({"msg": "delete successfully"}), 200
+    
+@api.route('/users/<int:id>/locations/<int:location_id>', methods=['DELETE'])
+def eliminate_location_fav(id, location_id):
+    user = db.session.get(User, id)
+    location = db.session.get(Location, location_id)
+
+    if not user or not location:
+        return jsonify({"error": "user or location not found"}), 404
+    
+    if location in user.favorite_locations:
+        user.favorite_characters.remove(location)
+        db.session.commit()
+        return jsonify({"msg": "delete successfully"}), 200

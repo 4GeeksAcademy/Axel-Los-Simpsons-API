@@ -4,31 +4,37 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 db = SQLAlchemy()
 
-favorites_table = Table(
-    "favorites_table",
+favorite_characters_table = Table(
+    "favorite_characters",
     db.metadata,
-    Column("Location_id", ForeignKey("location.id"), nullable=True),
-    Column("Character_id", ForeignKey("character.id"), nullable=True),
-    Column("User_id", ForeignKey("user.id"), nullable=False),
-    Column("id", db.Integer, primary_key=True)
+    Column("user_id", ForeignKey("user.id"), primary_key=True),
+    Column("character_id", ForeignKey("character.id"), primary_key=True),
+)
+
+favorite_locations_table = Table(
+    "favorite_locations",
+    db.metadata,
+    Column("user_id", ForeignKey("user.id"), primary_key=True),
+    Column("location_id", ForeignKey("location.id"), primary_key=True),
 )
 
 
 class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     user: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(
-        String(120), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
-    character_liked: Mapped[list["Character"]] = relationship(
+
+    favorite_characters = relationship(
         "Character",
-        secondary=favorites_table,
-        back_populates="character_liked"
+        secondary=favorite_characters_table,
+        back_populates="liked_by_users"
     )
-    location_liked: Mapped[list["Location"]] = relationship(
+
+    favorite_locations = relationship(
         "Location",
-        secondary=favorites_table,
-        back_populates="location_liked"
+        secondary=favorite_locations_table,
+        back_populates="liked_by_users"
     )
 
     def serialize(self):
@@ -41,8 +47,8 @@ class User(db.Model):
     def favorites_serialize(self):
         return {
             "favorites": {
-                "characters": [character.serialize() for character in self.character_liked],
-                "locations": [location.serialize() for location in self.location_liked]
+                "characters": [c.serialize() for c in self.favorite_characters],
+                "locations": [l.serialize() for l in self.favorite_locations]
             }
         }
 
@@ -53,8 +59,12 @@ class Location(db.Model):
     use: Mapped[str] = mapped_column(String(180), nullable=False)
     image: Mapped[str] = mapped_column(String(250), nullable=False)
     town: Mapped[str] = mapped_column(String(180), nullable=False)
-    location_liked: Mapped[list[User]] = relationship(
-        "User", secondary=favorites_table, back_populates="location_liked")
+
+    liked_by_users = relationship(
+        "User",
+        secondary=favorite_locations_table,
+        back_populates="favorite_locations"
+    )
 
     def serialize(self):
         return {
@@ -71,8 +81,12 @@ class Character(db.Model):
     quote: Mapped[str] = mapped_column(String(180), nullable=False)
     image: Mapped[str] = mapped_column(String(250), nullable=False)
     name: Mapped[str] = mapped_column(String(250), nullable=False)
-    character_liked: Mapped[list[User]] = relationship(
-        "User", secondary=favorites_table, back_populates="character_liked")
+
+    liked_by_users = relationship(
+        "User",
+        secondary=favorite_characters_table,
+        back_populates="favorite_characters"
+    )
 
     def serialize(self):
         return {
