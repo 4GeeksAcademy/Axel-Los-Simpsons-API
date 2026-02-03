@@ -244,6 +244,6 @@ def eliminate_location_fav(id, location_id):
         return jsonify({"error": "user or location not found"}), 404
     
     if location in user.favorite_locations:
-        user.favorite_characters.remove(location)
+        user.favorite_locations.remove(location)
         db.session.commit()
         return jsonify({"msg": "delete successfully"}), 200
